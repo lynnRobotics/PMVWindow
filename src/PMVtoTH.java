@@ -50,7 +50,9 @@ import javax.swing.JButton;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+
 import javax.swing.JScrollPane;
+import javax.swing.SwingConstants;
 
 
 
@@ -69,12 +71,37 @@ class PP<X, Y>{
 public class PMVtoTH extends JFrame {
 
 	private JPanel contentPane;
-	private JTextField textField_PMVValue;
 	
-	String action = "sleep";
-	String season = "summer";
-	String order = "temperature";
-	String PMVvalue = "0.0";
+	String currentTemperature = "18.0";
+	String currentHumidity = "0";
+	String currentAction = "sleep";
+	String currentSeason = "summer";
+	String content_PMVvalue;
+	double[][] PMVtable;
+	
+	String PMVlower = "0.0";
+	String PMVupper = "0.0";
+	String action_ComfortZone = "sleep";
+	String season_ComfortZone = "summer";
+	String order_ComfortZone = "temperature";
+	String content_ComfortZone;
+	Map<Double,List<PP<Double,Integer>>> PMVmap;
+	
+	final static double T_lower = 15.0;
+	final static double T_upper = 40.0;
+	final static double T_interval = 0.5;
+	final static int H_lower = 0;
+	final static int H_upper = 100;
+	final static int H_interval = 5;
+	
+	final static double T_comfort_lower = 18.0;
+	final static double T_comfort_upper = 32.0;
+	final static int H_comfort_lower = 50;
+	final static int H_comfort_upper = 70;
+	
+	final static int dimT = (int)((T_upper-T_lower)/T_interval)+1;
+	final static int dimH = (H_upper-H_lower)/H_interval + 1;
+	//String PMVvalue = "0.0";
 
 	/**
 	 * Launch the application.
@@ -92,125 +119,346 @@ public class PMVtoTH extends JFrame {
 				
 				
 				
-				
 			}
 		});
-		
-		
 	}
-
+	
 	/**
 	 * Create the frame.
 	 */
 	public PMVtoTH() {
 		
+		//PMV 2-dim array;
+		double[][] PMVSleepSummer=CalPMVArray("sleep","summer");
+		double[][] PMVSitSummer=CalPMVArray("sit","summer");
+		double[][] PMVStandSummer=CalPMVArray("stand","summer");
+		double[][] PMVSleepWinter=CalPMVArray("sleep","winter");
+		double[][] PMVSitWinter=CalPMVArray("sit","winter");
+		double[][] PMVStandWinter=CalPMVArray("stand","winter");
+		//PMV Sort by temperature
+		Map<Double,List<PP<Double,Integer>>> SleepSummerbyTemperature=SortPMVArray("temperature",PMVSleepSummer);
+		Map<Double,List<PP<Double,Integer>>> SitSummerbyTemperature=SortPMVArray("temperature",PMVSitSummer);
+		Map<Double,List<PP<Double,Integer>>> StandSummerbyTemperature=SortPMVArray("temperature",PMVStandSummer);
+		Map<Double,List<PP<Double,Integer>>> SleepWinterbyTemperature=SortPMVArray("temperature",PMVSleepWinter);
+		Map<Double,List<PP<Double,Integer>>> SitWinterbyTemperature=SortPMVArray("temperature",PMVSitWinter);
+		Map<Double,List<PP<Double,Integer>>> StandWinterbyTemperature=SortPMVArray("temperature",PMVStandWinter);
+		//PMV Sort by humidity
+		Map<Double,List<PP<Double,Integer>>> SleepSummerbyHumidity=SortPMVArray("humidity",PMVSleepSummer);
+		Map<Double,List<PP<Double,Integer>>> SitSummerbyHumidity=SortPMVArray("humidity",PMVSitSummer);
+		Map<Double,List<PP<Double,Integer>>> StandSummerbyHumidity=SortPMVArray("humidity",PMVStandSummer);
+		Map<Double,List<PP<Double,Integer>>> SleepWinterbyHumidity=SortPMVArray("humidity",PMVSleepWinter);
+		Map<Double,List<PP<Double,Integer>>> SitWinterbyHumidity=SortPMVArray("humidity",PMVSitWinter);
+		Map<Double,List<PP<Double,Integer>>> StandWinterbyHumidity=SortPMVArray("humidity",PMVStandWinter);
 		
-		
+		System.out.println("Calculation Done");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 450, 300);
+		setBounds(100, 100, 503, 545);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 		GridBagLayout gbl_contentPane = new GridBagLayout();
-		gbl_contentPane.columnWidths = new int[]{0, 0, 0};
-		gbl_contentPane.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0};
-		gbl_contentPane.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
-		gbl_contentPane.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, Double.MIN_VALUE};
+		gbl_contentPane.columnWidths = new int[]{0, 0, 0, 0};
+		gbl_contentPane.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		gbl_contentPane.columnWeights = new double[]{0.0, 0.0, 1.0, Double.MIN_VALUE};
+		gbl_contentPane.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, Double.MIN_VALUE};
 		contentPane.setLayout(gbl_contentPane);
 		
-		JLabel lblPmvValue = new JLabel("PMV Value");
-		GridBagConstraints gbc_lblPmvValue = new GridBagConstraints();
-		gbc_lblPmvValue.anchor = GridBagConstraints.EAST;
-		gbc_lblPmvValue.insets = new Insets(0, 0, 5, 5);
-		gbc_lblPmvValue.gridx = 0;
-		gbc_lblPmvValue.gridy = 0;
-		contentPane.add(lblPmvValue, gbc_lblPmvValue);
+		JTextArea textArea_PMVResult = new JTextArea();
+		GridBagConstraints gbc_textArea_PMVResult = new GridBagConstraints();
+		gbc_textArea_PMVResult.insets = new Insets(0, 0, 5, 0);
+		gbc_textArea_PMVResult.fill = GridBagConstraints.BOTH;
+		gbc_textArea_PMVResult.gridx = 2;
+		gbc_textArea_PMVResult.gridy = 6;
+		contentPane.add(textArea_PMVResult, gbc_textArea_PMVResult);
 		
-		textField_PMVValue = new JTextField();
-		textField_PMVValue.addActionListener(new ActionListener() {
+		JLabel lblPmvQuery = new JLabel("PMV Query");
+		GridBagConstraints gbc_lblPmvQuery = new GridBagConstraints();
+		gbc_lblPmvQuery.gridwidth = 3;
+		gbc_lblPmvQuery.insets = new Insets(0, 0, 5, 0);
+		gbc_lblPmvQuery.gridx = 0;
+		gbc_lblPmvQuery.gridy = 0;
+		contentPane.add(lblPmvQuery, gbc_lblPmvQuery);
+		
+		JLabel lblTemperatureInput = new JLabel("Temperature");
+		GridBagConstraints gbc_lblTemperatureInput = new GridBagConstraints();
+		gbc_lblTemperatureInput.gridwidth = 2;
+		gbc_lblTemperatureInput.anchor = GridBagConstraints.EAST;
+		gbc_lblTemperatureInput.insets = new Insets(0, 0, 5, 5);
+		gbc_lblTemperatureInput.gridx = 0;
+		gbc_lblTemperatureInput.gridy = 1;
+		contentPane.add(lblTemperatureInput, gbc_lblTemperatureInput);
+		
+		String[] temperatures = {																					"15.0", "15.5", "16.0", "16.5", "17.0", "17.5", "18.0", "18.5", "19.0", "19.5",
+									"20.0", "20.5", "21.0", "21.5", "22.0", "22.5", "23.0", "23.5", "24.0", "24.5", "25.0", "25.5", "26.0", "26.5", "27.0", "27.5", "28.0", "28.5", "29.0", "29.5",
+									"30.0", "30.5", "31.0", "31.5", "32.0", "32.5", "33.0", "33.5", "34.0", "34.5", "35.0", "35.5", "36.0", "36.5", "37.0", "37.5", "38.0", "38.5", "39.0", "39.5",
+									"40.0" };
+		JComboBox comboBox_TemperatureQuery = new JComboBox(temperatures);
+		comboBox_TemperatureQuery.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				PMVvalue = textField_PMVValue.getText();
+				currentTemperature = (String)comboBox_TemperatureQuery.getSelectedItem();
 			}
 		});
-		GridBagConstraints gbc_textField_PMVValue = new GridBagConstraints();
-		gbc_textField_PMVValue.insets = new Insets(0, 0, 5, 0);
-		gbc_textField_PMVValue.fill = GridBagConstraints.HORIZONTAL;
-		gbc_textField_PMVValue.gridx = 1;
-		gbc_textField_PMVValue.gridy = 0;
-		contentPane.add(textField_PMVValue, gbc_textField_PMVValue);
-		textField_PMVValue.setColumns(10);
+		GridBagConstraints gbc_comboBox_TemperatureQuery = new GridBagConstraints();
+		gbc_comboBox_TemperatureQuery.insets = new Insets(0, 0, 5, 0);
+		gbc_comboBox_TemperatureQuery.fill = GridBagConstraints.HORIZONTAL;
+		gbc_comboBox_TemperatureQuery.gridx = 2;
+		gbc_comboBox_TemperatureQuery.gridy = 1;
+		contentPane.add(comboBox_TemperatureQuery, gbc_comboBox_TemperatureQuery);
+		
+		JLabel lblHumidityInput = new JLabel("Humidity");
+		GridBagConstraints gbc_lblHumidityInput = new GridBagConstraints();
+		gbc_lblHumidityInput.anchor = GridBagConstraints.EAST;
+		gbc_lblHumidityInput.gridwidth = 2;
+		gbc_lblHumidityInput.insets = new Insets(0, 0, 5, 5);
+		gbc_lblHumidityInput.gridx = 0;
+		gbc_lblHumidityInput.gridy = 2;
+		contentPane.add(lblHumidityInput, gbc_lblHumidityInput);
+		
+		String[] humidities = { "0", "5", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55", "60", "65", "70", "75", "80", "85", "90", "95", "100"};
+		JComboBox comboBox_HumidityQuery = new JComboBox(humidities);
+		comboBox_HumidityQuery.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				currentHumidity = (String)comboBox_HumidityQuery.getSelectedItem();
+			}
+		});
+		GridBagConstraints gbc_comboBox_HumidityQuery = new GridBagConstraints();
+		gbc_comboBox_HumidityQuery.insets = new Insets(0, 0, 5, 0);
+		gbc_comboBox_HumidityQuery.fill = GridBagConstraints.HORIZONTAL;
+		gbc_comboBox_HumidityQuery.gridx = 2;
+		gbc_comboBox_HumidityQuery.gridy = 2;
+		contentPane.add(comboBox_HumidityQuery, gbc_comboBox_HumidityQuery);
+		
+		JLabel lblActionInput = new JLabel("Action");
+		GridBagConstraints gbc_lblActionInput = new GridBagConstraints();
+		gbc_lblActionInput.anchor = GridBagConstraints.EAST;
+		gbc_lblActionInput.gridwidth = 2;
+		gbc_lblActionInput.insets = new Insets(0, 0, 5, 5);
+		gbc_lblActionInput.gridx = 0;
+		gbc_lblActionInput.gridy = 3;
+		contentPane.add(lblActionInput, gbc_lblActionInput);
+		
+		String[] actions = {"sleep", "sit", "stand"};
+		JComboBox comboBox_ActionQuery = new JComboBox(actions);
+		comboBox_ActionQuery.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				currentAction = (String)comboBox_ActionQuery.getSelectedItem();
+			}
+		});
+		GridBagConstraints gbc_comboBox_ActionQuery = new GridBagConstraints();
+		gbc_comboBox_ActionQuery.insets = new Insets(0, 0, 5, 0);
+		gbc_comboBox_ActionQuery.fill = GridBagConstraints.HORIZONTAL;
+		gbc_comboBox_ActionQuery.gridx = 2;
+		gbc_comboBox_ActionQuery.gridy = 3;
+		contentPane.add(comboBox_ActionQuery, gbc_comboBox_ActionQuery);
+		
+		JLabel lblSeasonInput = new JLabel("Season");
+		GridBagConstraints gbc_lblSeasonInput = new GridBagConstraints();
+		gbc_lblSeasonInput.anchor = GridBagConstraints.EAST;
+		gbc_lblSeasonInput.gridwidth = 2;
+		gbc_lblSeasonInput.insets = new Insets(0, 0, 5, 5);
+		gbc_lblSeasonInput.gridx = 0;
+		gbc_lblSeasonInput.gridy = 4;
+		contentPane.add(lblSeasonInput, gbc_lblSeasonInput);
+		
+		String[] seasons = {"summer", "winter"};
+		JComboBox comboBox_SeasonQuery = new JComboBox(seasons);
+		comboBox_SeasonQuery.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				currentSeason = (String)comboBox_SeasonQuery.getSelectedItem();
+			}
+		});
+		GridBagConstraints gbc_comboBox_SeasonQuery = new GridBagConstraints();
+		gbc_comboBox_SeasonQuery.insets = new Insets(0, 0, 5, 0);
+		gbc_comboBox_SeasonQuery.fill = GridBagConstraints.HORIZONTAL;
+		gbc_comboBox_SeasonQuery.gridx = 2;
+		gbc_comboBox_SeasonQuery.gridy = 4;
+		contentPane.add(comboBox_SeasonQuery, gbc_comboBox_SeasonQuery);
+		
+		JButton btnCalculate_PMVQuery = new JButton("Calculate");
+		btnCalculate_PMVQuery.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(currentAction.equals("sleep") && currentSeason.equals("summer") )
+				{
+					PMVtable = PMVSleepSummer;
+				}
+				else if(currentAction.equals("sit") && currentSeason.equals("summer") )
+				{
+					PMVtable = PMVSitSummer;
+				}
+				else if(currentAction.equals("stand") && currentSeason.equals("summer") )
+				{
+					PMVtable = PMVStandSummer;
+				}
+				else if(currentAction.equals("sleep") && currentSeason.equals("winter") )
+				{
+					PMVtable = PMVSleepWinter;
+				}
+				else if(currentAction.equals("sit") && currentSeason.equals("winter") )
+				{
+					PMVtable = PMVSitWinter;
+				}
+				else if(currentAction.equals("stand") && currentSeason.equals("winter") )
+				{
+					PMVtable = PMVStandWinter;
+				}
+				
+				int indexT = (int)((Double.parseDouble(currentTemperature)-T_lower)/T_interval);
+				int indexH = (int)((Double.parseDouble(currentHumidity)-H_lower)/H_interval);
+				
+				content_PMVvalue = Double.toString(PMVtable[indexT][indexH]);
+				textArea_PMVResult.setText(content_PMVvalue);
+			}
+		});
+		GridBagConstraints gbc_btnCalculate_PMVQuery = new GridBagConstraints();
+		gbc_btnCalculate_PMVQuery.anchor = GridBagConstraints.EAST;
+		gbc_btnCalculate_PMVQuery.insets = new Insets(0, 0, 5, 0);
+		gbc_btnCalculate_PMVQuery.gridx = 2;
+		gbc_btnCalculate_PMVQuery.gridy = 5;
+		contentPane.add(btnCalculate_PMVQuery, gbc_btnCalculate_PMVQuery);
+		
+		
+		
+		JLabel lblComfortZoneCalculation = new JLabel("Comfort Zone Calculation");
+		GridBagConstraints gbc_lblComfortZoneCalculation = new GridBagConstraints();
+		gbc_lblComfortZoneCalculation.gridwidth = 3;
+		gbc_lblComfortZoneCalculation.insets = new Insets(0, 0, 5, 0);
+		gbc_lblComfortZoneCalculation.gridx = 0;
+		gbc_lblComfortZoneCalculation.gridy = 7;
+		contentPane.add(lblComfortZoneCalculation, gbc_lblComfortZoneCalculation);
+		
+		JLabel lblPmvRange = new JLabel("PMV Range");
+		GridBagConstraints gbc_lblPmvRange = new GridBagConstraints();
+		gbc_lblPmvRange.anchor = GridBagConstraints.EAST;
+		gbc_lblPmvRange.insets = new Insets(0, 0, 5, 5);
+		gbc_lblPmvRange.gridx = 0;
+		gbc_lblPmvRange.gridy = 8;
+		contentPane.add(lblPmvRange, gbc_lblPmvRange);
+		
+		JLabel lblFrom = new JLabel("From");
+		GridBagConstraints gbc_lblFrom = new GridBagConstraints();
+		gbc_lblFrom.insets = new Insets(0, 0, 5, 5);
+		gbc_lblFrom.anchor = GridBagConstraints.EAST;
+		gbc_lblFrom.gridx = 1;
+		gbc_lblFrom.gridy = 8;
+		contentPane.add(lblFrom, gbc_lblFrom);
+		
+		String[] PMVlowerRange = {	"-3.0", "-2.9", "-2.8", "-2.7", "-2.6", "-2.5", "-2.4", "-2.3", "-2.2", "-2.1",
+									"-2.0", "-1.9", "-1.8", "-1.7", "-1.6", "-1.5", "-1.4", "-1.3", "-1.2", "-1.1",
+									"-1.0", "-0.9", "-0.8", "-0.7", "-0.6", "-0.5", "-0.4", "-0.3", "-0.2", "-0.1", 
+									"0.0", 
+									"0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0",
+									"1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0",
+									"2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "2.7", "2.8", "2.9", "3.0" };
+		JComboBox comboBox_PMVlower = new JComboBox(PMVlowerRange);
+		comboBox_PMVlower.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				PMVlower = (String)comboBox_PMVlower.getSelectedItem();
+			}
+		});
+		GridBagConstraints gbc_comboBox_PMVlower = new GridBagConstraints();
+		gbc_comboBox_PMVlower.insets = new Insets(0, 0, 5, 0);
+		gbc_comboBox_PMVlower.fill = GridBagConstraints.HORIZONTAL;
+		gbc_comboBox_PMVlower.gridx = 2;
+		gbc_comboBox_PMVlower.gridy = 8;
+		contentPane.add(comboBox_PMVlower, gbc_comboBox_PMVlower);
+		
+		JLabel lblTo = new JLabel("To");
+		GridBagConstraints gbc_lblTo = new GridBagConstraints();
+		gbc_lblTo.anchor = GridBagConstraints.EAST;
+		gbc_lblTo.insets = new Insets(0, 0, 5, 5);
+		gbc_lblTo.gridx = 1;
+		gbc_lblTo.gridy = 9;
+		contentPane.add(lblTo, gbc_lblTo);
+		
+		String[] PMVupperRange = {	"-3.0", "-2.9", "-2.8", "-2.7", "-2.6", "-2.5", "-2.4", "-2.3", "-2.2", "-2.1",
+				"-2.0", "-1.9", "-1.8", "-1.7", "-1.6", "-1.5", "-1.4", "-1.3", "-1.2", "-1.1",
+				"-1.0", "-0.9", "-0.8", "-0.7", "-0.6", "-0.5", "-0.4", "-0.3", "-0.2", "-0.1", 
+				"0.0", 
+				"0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1.0",
+				"1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "2.0",
+				"2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "2.7", "2.8", "2.9", "3.0" };
+		JComboBox comboBox_PMVupper = new JComboBox(PMVupperRange);
+		comboBox_PMVupper.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				PMVupper = (String)comboBox_PMVupper.getSelectedItem();
+			}
+		});
+		GridBagConstraints gbc_comboBox_PMVupper = new GridBagConstraints();
+		gbc_comboBox_PMVupper.insets = new Insets(0, 0, 5, 0);
+		gbc_comboBox_PMVupper.fill = GridBagConstraints.HORIZONTAL;
+		gbc_comboBox_PMVupper.gridx = 2;
+		gbc_comboBox_PMVupper.gridy = 9;
+		contentPane.add(comboBox_PMVupper, gbc_comboBox_PMVupper);
 		
 		JLabel lblAction = new JLabel("Action");
 		GridBagConstraints gbc_lblAction = new GridBagConstraints();
+		gbc_lblAction.gridwidth = 2;
 		gbc_lblAction.anchor = GridBagConstraints.EAST;
 		gbc_lblAction.insets = new Insets(0, 0, 5, 5);
 		gbc_lblAction.gridx = 0;
-		gbc_lblAction.gridy = 1;
+		gbc_lblAction.gridy = 10;
 		contentPane.add(lblAction, gbc_lblAction);
-		
-		String[] actions = {"sleep", "sit", "stand"};
 		
 		JComboBox comboBox_Action = new JComboBox(actions);
 		comboBox_Action.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				action = (String)comboBox_Action.getSelectedItem();
-				System.out.println(action);
+				action_ComfortZone = (String)comboBox_Action.getSelectedItem();
 			}
 		});
 		comboBox_Action.setToolTipText("");
 		GridBagConstraints gbc_comboBox_Action = new GridBagConstraints();
 		gbc_comboBox_Action.insets = new Insets(0, 0, 5, 0);
 		gbc_comboBox_Action.fill = GridBagConstraints.HORIZONTAL;
-		gbc_comboBox_Action.gridx = 1;
-		gbc_comboBox_Action.gridy = 1;
+		gbc_comboBox_Action.gridx = 2;
+		gbc_comboBox_Action.gridy = 10;
 		contentPane.add(comboBox_Action, gbc_comboBox_Action);
 		
 		JLabel lblSeason = new JLabel("Season");
 		GridBagConstraints gbc_lblSeason = new GridBagConstraints();
+		gbc_lblSeason.gridwidth = 2;
 		gbc_lblSeason.anchor = GridBagConstraints.EAST;
 		gbc_lblSeason.insets = new Insets(0, 0, 5, 5);
 		gbc_lblSeason.gridx = 0;
-		gbc_lblSeason.gridy = 2;
+		gbc_lblSeason.gridy = 11;
 		contentPane.add(lblSeason, gbc_lblSeason);
 		
-		String[] seasons = {"summer", "winter"};
 		
 		JComboBox comboBox_Season = new JComboBox(seasons);
 		comboBox_Season.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				season = (String)comboBox_Season.getSelectedItem();
+				season_ComfortZone = (String)comboBox_Season.getSelectedItem();
 			}
 		});
 		comboBox_Season.setToolTipText("");
 		GridBagConstraints gbc_comboBox_Season = new GridBagConstraints();
 		gbc_comboBox_Season.insets = new Insets(0, 0, 5, 0);
 		gbc_comboBox_Season.fill = GridBagConstraints.HORIZONTAL;
-		gbc_comboBox_Season.gridx = 1;
-		gbc_comboBox_Season.gridy = 2;
+		gbc_comboBox_Season.gridx = 2;
+		gbc_comboBox_Season.gridy = 11;
 		contentPane.add(comboBox_Season, gbc_comboBox_Season);
 		
 		JLabel lblSortBy = new JLabel("Sort by");
 		GridBagConstraints gbc_lblSortBy = new GridBagConstraints();
+		gbc_lblSortBy.gridwidth = 2;
 		gbc_lblSortBy.anchor = GridBagConstraints.EAST;
 		gbc_lblSortBy.insets = new Insets(0, 0, 5, 5);
 		gbc_lblSortBy.gridx = 0;
-		gbc_lblSortBy.gridy = 3;
+		gbc_lblSortBy.gridy = 12;
 		contentPane.add(lblSortBy, gbc_lblSortBy);
 		
 		String[] orders = {"temperature", "humidity"};
-		
 		JComboBox comboBox_Sorting = new JComboBox(orders);
 		comboBox_Sorting.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				order = (String)comboBox_Sorting.getSelectedItem();
+				order_ComfortZone = (String)comboBox_Sorting.getSelectedItem();
 			}
 		});
 		comboBox_Sorting.setToolTipText("");
 		GridBagConstraints gbc_comboBox_Sorting = new GridBagConstraints();
 		gbc_comboBox_Sorting.insets = new Insets(0, 0, 5, 0);
 		gbc_comboBox_Sorting.fill = GridBagConstraints.HORIZONTAL;
-		gbc_comboBox_Sorting.gridx = 1;
-		gbc_comboBox_Sorting.gridy = 3;
+		gbc_comboBox_Sorting.gridx = 2;
+		gbc_comboBox_Sorting.gridy = 12;
 		contentPane.add(comboBox_Sorting, gbc_comboBox_Sorting);
 		
 		JLabel lblResult = new JLabel("Result (T,H)");
@@ -218,54 +466,132 @@ public class PMVtoTH extends JFrame {
 		gbc_lblResult.anchor = GridBagConstraints.NORTH;
 		gbc_lblResult.insets = new Insets(0, 0, 5, 5);
 		gbc_lblResult.gridx = 0;
-		gbc_lblResult.gridy = 5;
+		gbc_lblResult.gridy = 14;
 		contentPane.add(lblResult, gbc_lblResult);
 		
 		JScrollPane scrollPane = new JScrollPane();
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 		gbc_scrollPane.insets = new Insets(0, 0, 5, 0);
 		gbc_scrollPane.fill = GridBagConstraints.BOTH;
-		gbc_scrollPane.gridx = 1;
-		gbc_scrollPane.gridy = 5;
+		gbc_scrollPane.gridx = 2;
+		gbc_scrollPane.gridy = 14;
 		contentPane.add(scrollPane, gbc_scrollPane);
 		
-		JTextArea textArea_Result = new JTextArea();
-		scrollPane.setViewportView(textArea_Result);
-		textArea_Result.setLineWrap(true);
+		JTextArea textArea_ComfortZoneResult = new JTextArea();
+		scrollPane.setViewportView(textArea_ComfortZoneResult);
+		textArea_ComfortZoneResult.setLineWrap(true);
 		
-		JButton btnCalculate1 = new JButton("Calculate");
-		btnCalculate1.addActionListener(new ActionListener() {
+		JButton btnCalculate_ComfortZone = new JButton("Calculate");
+		btnCalculate_ComfortZone.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				double[][] PMVarr=CalPMVArray(action,season);
-				Map<Double,List<PP<Double,Integer>>> PMVmap = SortPMVArray(order,PMVarr);
-				if(!PMVmap.containsKey(Double.parseDouble(PMVvalue)))
+				
+				//System.out.println("action");
+				//System.out.println(action);
+				//System.out.println("season");
+				//System.out.println(season);
+				//System.out.println("order");
+				//System.out.println(order);
+				//System.out.println("==========================");
+				
+				if(action_ComfortZone.equals("sleep") && season_ComfortZone.equals("summer") && order_ComfortZone.equals("temperature") )
 				{
-					content = "PMV Value out of range!";
-					textArea_Result.setText(content);
+					PMVmap = SleepSummerbyTemperature;
+					System.out.println("1");
+				}
+				else if(action_ComfortZone.equals("sit") && season_ComfortZone.equals("summer") && order_ComfortZone.equals("temperature") )
+				{
+					PMVmap = SitSummerbyTemperature;
+					System.out.println("2");
+				}
+				else if(action_ComfortZone.equals("stand") && season_ComfortZone.equals("summer") && order_ComfortZone.equals("temperature") )
+				{
+					PMVmap = StandSummerbyTemperature;
+					System.out.println("3");
+				}
+				else if(action_ComfortZone.equals("sleep") && season_ComfortZone.equals("winter") && order_ComfortZone.equals("temperature") )
+				{
+					PMVmap = SleepWinterbyTemperature;
+					System.out.println("4");
+				}
+				else if(action_ComfortZone.equals("sit") && season_ComfortZone.equals("winter") && order_ComfortZone.equals("temperature") )
+				{
+					PMVmap = SitWinterbyTemperature;
+					System.out.println("5");
+				}
+				else if(action_ComfortZone.equals("stand") && season_ComfortZone.equals("winter") && order_ComfortZone.equals("temperature") )
+				{
+					PMVmap = StandWinterbyTemperature;
+					System.out.println("6");
+				}
+				else if(action_ComfortZone.equals("sleep") && season_ComfortZone.equals("summer") && order_ComfortZone.equals("humidity") )
+				{
+					PMVmap = SleepSummerbyHumidity;
+					System.out.println("7");
+				}
+				else if(action_ComfortZone.equals("sit") && season_ComfortZone.equals("summer") && order_ComfortZone.equals("humidity") )
+				{
+					PMVmap = SitSummerbyHumidity;
+					System.out.println("8");
+				}
+				else if(action_ComfortZone.equals("stand") && season_ComfortZone.equals("summer") && order_ComfortZone.equals("humidity") )
+				{
+					PMVmap = StandSummerbyHumidity;
+					System.out.println("9");
+				}
+				else if(action_ComfortZone.equals("sleep") && season_ComfortZone.equals("winter") && order_ComfortZone.equals("humidity") )
+				{
+					PMVmap = SleepWinterbyHumidity;
+					System.out.println("10");
+				}
+				else if(action_ComfortZone.equals("sit") && season_ComfortZone.equals("winter") && order_ComfortZone.equals("humidity") )
+				{
+					PMVmap = SitWinterbyHumidity;
+					System.out.println("11");
+				}
+				else if(action_ComfortZone.equals("stand") && season_ComfortZone.equals("winter") && order_ComfortZone.equals("humidity") )
+				{
+					PMVmap = StandWinterbyHumidity;
+					System.out.println("12");
+				}
+				
+				double PMVlower_value = roundToDec(Double.parseDouble(PMVlower),1);
+				double PMVupper_value = roundToDec(Double.parseDouble(PMVupper),1);
+				if(PMVlower_value>PMVupper_value)
+				{
+					content_ComfortZone = "PMV range is invalid!";
 				}
 				else{
-					content = "";
-					for(int index=0;index < PMVmap.get(Double.parseDouble(PMVvalue)).size();++index)
+					content_ComfortZone = "";
+					for (double PMVvalue=PMVlower_value;PMVvalue<PMVupper_value+0.1;PMVvalue+=0.1)
 					{
-						content=content+"("+Double.toString(roundToDec(PMVmap.get(Double.parseDouble(PMVvalue)).get(index).x,1))+","+Integer.toString(PMVmap.get(Double.parseDouble(PMVvalue)).get(index).y)+")\n";
-						textArea_Result.setText(content);
+						double key = roundToDec(PMVvalue,1);
+						System.out.println("key"+key);
+						if(PMVmap.containsKey(key))
+						{
+							for(int index=0;index < PMVmap.get(key).size();++index)
+							{
+								content_ComfortZone=content_ComfortZone+"("+Double.toString(roundToDec(PMVmap.get(key).get(index).x,1))+","+Integer.toString(PMVmap.get(key).get(index).y)+") ";
+							}
+							content_ComfortZone=content_ComfortZone+"\n";
+						}
+					}
+					if(content_ComfortZone.contentEquals(""))
+					{
+						content_ComfortZone="PMV value is out of range!";
 					}
 				}
+				textArea_ComfortZoneResult.setText(content_ComfortZone);
 			}
 		});
 		
-		GridBagConstraints gbc_btnCalculate = new GridBagConstraints();
-		gbc_btnCalculate.anchor = GridBagConstraints.EAST;
-		gbc_btnCalculate.insets = new Insets(0, 0, 5, 0);
-		gbc_btnCalculate.gridx = 1;
-		gbc_btnCalculate.gridy = 4;
-		contentPane.add(btnCalculate1, gbc_btnCalculate);
+		GridBagConstraints gbc_btnCalculate_ComfortZone = new GridBagConstraints();
+		gbc_btnCalculate_ComfortZone.anchor = GridBagConstraints.EAST;
+		gbc_btnCalculate_ComfortZone.insets = new Insets(0, 0, 5, 0);
+		gbc_btnCalculate_ComfortZone.gridx = 2;
+		gbc_btnCalculate_ComfortZone.gridy = 13;
+		contentPane.add(btnCalculate_ComfortZone, gbc_btnCalculate_ComfortZone);
 	}
 	
-	static String content;
-	
-	final static int dimT = 20*10 + 1;
-	final static int dimH = 100/1 + 1; 
 	
 	double GetPMVFromArray(double temp, int humid, double[][] PMVarray)
 	{
@@ -274,7 +600,7 @@ public class PMVtoTH extends JFrame {
 		return PMVarray[i][j];
 	}
 	
-	Map<Double,List<PP<Double,Integer>>> SortPMVArray(String priority, double[][] PMVarray)
+	static Map<Double,List<PP<Double,Integer>>> SortPMVArray(String priority, double[][] PMVarray)
 	{
 		Map<Double,List<PP<Double,Integer>>> PMVmap = ArraytoMap(PMVarray);
 		
@@ -302,7 +628,7 @@ public class PMVtoTH extends JFrame {
 		return PMVmap;
 	}
 	
-	List<PP<Double,Integer>> SortListbyFirstEntry(List<PP<Double,Integer>> list)
+	static List<PP<Double,Integer>> SortListbyFirstEntry(List<PP<Double,Integer>> list)
 	{
 		Collections.sort(list, new Comparator<PP<Double,Integer>>()
 				{
@@ -318,7 +644,7 @@ public class PMVtoTH extends JFrame {
 		return list;
 	}
 	
-	List<PP<Double,Integer>> SortListbySecondEntry(List<PP<Double,Integer>> list)
+	static List<PP<Double,Integer>> SortListbySecondEntry(List<PP<Double,Integer>> list)
 	{
 		Collections.sort(list, new Comparator<PP<Double,Integer>>()
 				{
@@ -334,19 +660,19 @@ public class PMVtoTH extends JFrame {
 		return list;
 	}
 	
-	Map<Double,List<PP<Double,Integer>>> ArraytoMap(double[][] array)
+	static Map<Double,List<PP<Double,Integer>>> ArraytoMap(double[][] array)
 	{
 		Map<Double,List<PP<Double,Integer>>> map = new HashMap<Double,List<PP<Double,Integer>>>();
 		
-		for(int rh=0;rh<=100;++rh){
-			for(double t=20.0;t<40.1;t+=0.1){
-				int i = (int)(Math.round(t*10)-200);
-				int j = rh;
+		for(int rh=H_lower;rh<H_upper+H_interval;rh+=H_interval){
+			for(double t=T_lower;t<T_upper+T_interval;t+=T_interval){
+				int i = (int)Math.round((t-T_lower)/T_interval);
+				int j = (rh-H_lower)/H_interval;
 				
 				double entry1 = array[i][j];
 				
 				if(map.containsKey(entry1)){
-					map.get(entry1).add(new PP(t,j));
+					map.get(entry1).add(new PP(t,rh));
 				}
 				else
 				{
@@ -359,7 +685,7 @@ public class PMVtoTH extends JFrame {
 		return map;
 	}
 	
-	double[][] CalPMVArray(String action, String season)
+	static double[][] CalPMVArray(String action, String season)
 	{
 		double[][] PMVarray = new double[dimT][dimH];
 		
@@ -391,78 +717,29 @@ public class PMVtoTH extends JFrame {
 			return null;
 		}
 		
+		System.out.println("action: "+action);
+		System.out.println("season: "+season);
+		
 		int i = 0; // x index, t
 		int j = 0; // y index, rh
-		for(rh=0;rh<=100;++rh){
-			for(t=20.0;t<40.1;t+=0.1){
+		for(rh=H_lower;rh<H_upper+H_interval;rh+=H_interval){
+			for(t=T_lower;t<T_upper+T_interval;t+=T_interval){
 				double pmv=calPMV(t,t,vel,rh,met,clo,0.0);
 				pmv=roundToDec(pmv,1);
+				if (season.equals("summer")&&rh>H_comfort_upper) pmv=3.0;
+				if (rh<H_comfort_lower) pmv=-3.0;
+				if (t>T_comfort_upper) pmv=3.0;
+				if (t<T_comfort_lower) pmv=-3.0;
+				
 				PMVarray[i][j]=pmv;
 				i++;
+				System.out.print(pmv+" ");
 			}
+			System.out.println(" ");
 			j++;
 			i=0;
 		}
 		return PMVarray;
-	}
-	
-	static void WritePMVtoFile(String action, String season) throws IOException // varies with action and season
-	{
-		double t; // air temperature & mean radiant temperature (°C), from 20.0 to 40.0
-		double vel; // wind velocity (m/s), from 0.0 to 2.0
-		double rh; // relative humidity (%), from 0 to 100
-		double met; // metabolic rate (met), sleep-0.7, sit=1.0, stand=1.2
-		double clo; // clothing (clo), summer=0.5, winter=1.0
-		
-		if(action.contentEquals("sleep"))
-			met=0.7;
-		else if (action.contentEquals("sit"))
-			met=1.0;
-		else if (action.contentEquals("stand"))
-			met=1.2;
-		else
-		{
-			System.out.print("Action undefined");
-			return;
-		}
-		
-		if(season.contentEquals("summer"))
-			clo=0.5;
-		else if(season.contentEquals("winter"))
-			clo=1.0;
-		else
-		{
-			System.out.print("Season undefined");
-			return;
-		}
-		
-
-		for(vel=0.0;vel<2.1;vel+=0.1){
-			String filename = new String(action+"_"+season+"_WindVel_"+Double.toString(roundToDec(vel,1)));
-			File fout= new File(filename+".txt");
-			FileOutputStream fos = new FileOutputStream(fout);
-			OutputStreamWriter osw= new OutputStreamWriter(fos);
-			osw.write(filename);
-			osw.write("\n");
-			osw.write("HumidTemp ");
-			for (t=20.0;t<40.1;t+=0.1)
-				osw.write(Double.toString(roundToDec(t,1))+" ");
-			osw.write("\n");
-			for(rh=0;rh<=100;++rh){
-				//System.out.print(Double.toString(rh));
-				osw.write(Double.toString(rh)+" ");
-				for(t=20.0;t<40.1;t+=0.1){
-					double pmv=calPMV(t,t,vel,rh,met,clo,0.0);
-					pmv=roundToDec(pmv,1);
-					osw.write(pmv+" ");
-					//System.out.print(pmv+" ");
-				}
-				osw.write("\n");
-				//System.out.println(" ");
-			}
-			osw.close();
-		}	
-			
 	}
 	
 	static double calPMV(double ta, double tr, double vel, double rh, double met, double clo, double wme) {
